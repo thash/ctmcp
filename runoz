@@ -1,0 +1,27 @@
+#!/usr/bin/env ruby
+
+ozc      = '/Applications/Mozart2.app/Contents/Resources/bin/ozc'
+ozengine = '/Applications/Mozart2.app/Contents/Resources/bin/ozengine'
+
+tmpoz = open("./tmp.oz", "w")
+tmpoz.write <<EOL
+functor
+import
+   System
+define
+  proc {Browse Val}
+    {System.show Val}
+  end
+EOL
+
+open(ARGV[0]) do |file|
+  tmpoz.write file.read
+end
+
+tmpoz.write 'end'
+
+tmpoz.close
+
+# -l Space: ignore "variable Space not introduced" error which caused by booksuppl.oz
+puts `#{ozc} -c -l Space --include=./booksuppl.oz #{tmpoz.path} && #{ozengine} #{tmpoz.path}f`
+`rm #{tmpoz.path} #{tmpoz.path}f`
