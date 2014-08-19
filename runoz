@@ -1,5 +1,7 @@
 #!/usr/bin/env ruby
 
+require 'fileutils'
+
 ozc      = '/Applications/Mozart2.app/Contents/Resources/bin/ozc'
 ozengine = '/Applications/Mozart2.app/Contents/Resources/bin/ozengine'
 
@@ -24,4 +26,4 @@ tmpoz.close
 
 # -l Space: ignore "variable Space not introduced" error which caused by booksuppl.oz
 puts `#{ozc} -c -l Space --include=./booksuppl.oz #{tmpoz.path} && #{ozengine} #{tmpoz.path}f`
-`rm #{tmpoz.path} #{tmpoz.path}f`
+FileUtils.rm [tmpoz.path, "#{tmpoz.path}f"]
