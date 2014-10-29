@@ -117,12 +117,14 @@ nil#nil
 [a b c d]#[d]
 
 %% 要は第一リストから第二リストの要素を引いた"差分"が, 本来表したいリストであるような構造
+%% SICPでfringeを実装した際, 効率化のため「loopの中にloopを入れ」たのと発想は同じ.
 
 %% 差分リストの利点
 %%   1. 簡単に反復を作れるようになる(これは差分構造であれば木なんかでも言える)
 %%   2. 第二リストが未束縛変数であれば定数時間でappendが可能.
 
 %% (2)の例
+declare AppendD
 fun {AppendD D1 D2}
    S1#E1=D1 % E1は未束縛変数, という前提だった
    S2#E2=D2
@@ -133,14 +135,51 @@ in
    S1#E2
 end
 
-
-%% SICPではfringeとして実装した. 効率化しようとしてloopの中にloopを入れる, としたがそれと同じ.
-%% 差分リストという概念を使わず辿り着いていた
-
 %% 差分listに対して何か操作を行うと新しいqueueを作って返す.
 %% 参考スライドは後ろのほうが逆だけどCTMCPは表現が違う.
+declare BadFlatten
+fun {BadFlatten Xs}
+   case Xs
+   of nil then nil
+   [] X|Xr andthen {IsList X} then
+      {Append {BadFlatten X} {BadFlatten Xr}}
+   [] X|Xr then % XがListじゃない場合
+      X|{BadFlatten Xr}
+   end
+end
 
+{Browse {BadFlatten [[a b] [[c] [d]] nil [e [f]]]}}
 
+%% このBadFlattenは非常に効率が悪い.
+%% 差分リストを使い, 効率的な実装を試みる(いくつかバージョンあるが最後のもののみ書く)
+declare Flatten
+fun {Flatten Xs}
+   fun {FlattenD Xs E}
+      case Xs
+      of nil then E
+      [] X|Xr andthen {IsList X} then
+         {FlattenD X {FlattenD Xr E}}
+      [] X|Xr then
+         X|{FlattenD Xr E}
+      end
+   end
+in
+   {FlattenD Xs nil}
+end
+
+{Browse {Flatten [[a b] [[c] [d]] nil [e [f]]]}}
+
+declare Reverse
+fun {Reverse Xs}
+   proc {ReverseD Xs ?Ys Y}
+      case Xs
+      of nil then Y1=Y
+      [] X|Xr then {ReverseD Xr Y1 X|Y}
+      end
+   end Y1
+in {ReverseD Xs Y1 nil} Y1 end
+
+{Browse {Reverse [1 2 3 4 5]}}
 
 
 %% 3.4.5 キュー
@@ -250,6 +289,8 @@ fun {Lookup X T}
 end
 
 {Browse {Lookup 6 T}} % => found(6)
+{Browse {Lookup 8 T}}
+{Browse {Lookup 89 T}}
 
 
 fun {Insert X V T}
@@ -282,6 +323,22 @@ fun {IncorrectDelete X T}
    end
 end
 
+%% 完全版Delete
+fun {Delete X T}
+   case T
+   of leaf then leaf
+   [] tree(Y W T1 T2) andthen X==Y then
+      case {RemoveSmallest T2}
+      of none then T1
+      [] Yp#Vp#Tp then tree(Yp Vp T1 Tp)
+      end
+   [] tree(Y W T1 T2) andthen X<Y then
+      tree(Y W {Delete X T1} T2)
+   [] tree(Y W T1 T2) andthen X>Y then
+      tree(Y W T1 {Delete X T2})
+   end
+end
+
 %% 節を削除するときのパターン
 %%   (A). T1 leaf, T2 leaf => 節自体を削除
 %%   (B). T1 tree, T2 leaf => T1に置き換え
@@ -299,21 +356,6 @@ fun {RemoveSmallest T}
    end
 end
 
-%% 完全版Delete
-fun {Delete X T}
-   case T
-   of leaf then leaf
-   [] tree(Y W T1 T2) andthen X==Y then
-      case {RemoveSmallest T2}
-      of none then T1
-      [] Yp#Vp#Tp then tree(Yp Vp T1 Tp)
-      end
-   [] tree(Y W T1 T2) andthen X<Y then
-      tree(Y W {Delete X T1} T2)
-   [] tree(Y W T1 T2) andthen X>Y then
-      tree(Y W T1 {Delete X T2})
-   end
-end
 
 {Browse T}
 {Browse {Delete 8 T}}
@@ -343,8 +385,8 @@ end
 
 {DFS T} % => fig2
 
+
 %% つぎに, 走査してすべてのKeyと情報の対をリストにして返すアキュームレータを作成する.
-declare DFSAccLoop DFSAcc
 
 %% 以前3.4.2.4(p.139)で定義した反復版のReverse再掲
 declare IterReverse Reverse
@@ -359,11 +401,12 @@ fun {Reverse Xs}
 end
 
 
+declare DFSAccLoop DFSAcc
 proc {DFSAccLoop T S1 ?Sn}
    case T
-   of leaf then Sn=S1
-      [] tree(Key Val L R) then S2 S3 in
-      S2=Key#Val|S1 % (Key, (Val, S1))
+   of leaf then Sn=S1 % leafになるとその枝は終了 出力状態はSn
+   [] tree(Key Val L R) then S2 S3 in
+      S2=Key#Val|S1 % S1が前の走査までの結果リスト. 今回のValはS1の前側にconsしている
       {DFSAccLoop L S2 S3}
       {DFSAccLoop R S3 Sn}
    end
@@ -381,9 +424,9 @@ fun {DFSAcc T} {Reverse {DFSAccLoop T nil $}} end
 declare DFSAccLoop2 DFSAcc2
 proc {DFSAccLoop2 T ?S1 Sn}
    case T
-   of leaf then S1=Sn
+   of leaf then S1=Sn % 出力状態はS1
    [] tree(Key Val L R) then S2 S3 in
-      S1=Key#Val|S2
+      S1=Key#Val|S2 % S2が未束縛のまま子の枝へ遷移する(前から順にValが結合する)
       {DFSAccLoop2 L S2 S3}
       {DFSAccLoop2 R S3 Sn}
    end
@@ -394,14 +437,20 @@ fun {DFSAcc2 T} {DFSAccLoop2 T $ nil} end
 
 
 %% 幅優先探索(breadth-first traversal)
-declare BFS
-%% 与えられた深さのすべての節を保持するためにキューが必要.
+%% まず深さ0のすべての節, つぎに深さ1のすべての節...という順に走査する. 深さ = 根からその節までの経路長.
+%% 具体的な処理は, 最初に深さkの位置にある節をすべてQueueにInsertしたのち, Queue要素を順に走査する.
+
 %% こちらもまず単純にBrowseしていく例から.
+declare BFS
 proc {BFS T}
+   %% 木をQueueに突っ込む関数
    fun {TreeInsert Q T}
       if T\=leaf then {Insert Q T} else Q end
    end
+   %% Queueを受け取り順々に処理する
    proc {BFSQueue Q1}
+      {Browse Q1}
+      %% Queueが空になればすべて終わり
       if {IsEmpty Q1} then skip
       else X Q2 Key Val L R in
          Q2={Delete Q1 X}
@@ -411,6 +460,7 @@ proc {BFS T}
       end
    end
 in
+   %% Tそのもの(根)を入れるところから始まる
    {BFSQueue {TreeInsert {NewQueue} T}}
 end
 
@@ -452,13 +502,15 @@ proc {DFS T}
          tree(Key Val L R)=X
       in
          {Browse Key#Val}
-         {DFSSTack {TreeInsert {TreeInsert S2 R} L}}
+         {DFSStack {TreeInsert {TreeInsert S2 R} L}}
       end
 
    end
 in
    {DFSStack {TreeInsert nil T}}
 end
+
+{DFS T}
 
 %% 末尾再帰になっているためスタックは大きくならない.
 
