@@ -4,6 +4,14 @@ module Tree
     def self.empty?
       true
     end
+
+    def self.to_graph
+      []
+    end
+
+    def self.val
+      nil
+    end
   end
 
   class Leaf
@@ -25,6 +33,10 @@ module Tree
       else
         self
       end
+    end
+
+    def to_graph
+      []
     end
   end
 
@@ -49,6 +61,27 @@ module Tree
         @r = r.empty? ? Leaf.new(item) : r.insert(item)
       end
       self
+    end
+
+    # 単純な深さ優先探索
+    # ただの平坦配列にするので左, 右の情報が失われる
+    def to_graph
+      [ [val, l.val], [val, r.val] ]
+        .concat(l.to_graph)
+        .concat(r.to_graph)
+        .reject{|pair| pair[1].nil? }
+    end
+
+    # usage: $ dot -T png -o out.png out.dot
+    def to_dotfile(filename='out.dot')
+      File.open(filename, 'w+') do |output|
+        output << "digraph tree {\n"
+        self.to_graph.each do |pair|
+          output << "#{pair[0]} -> #{pair[1]};\n"
+        end
+        output << '}'
+      end
+      filename
     end
   end
 
