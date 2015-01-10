@@ -25,5 +25,5 @@ tmpoz.write 'end'
 tmpoz.close
 
 # -l Space: ignore "variable Space not introduced" error which caused by booksuppl.oz
-puts `#{ozc} -c -l Space --include=./booksuppl.oz #{tmpoz.path} && #{ozengine} #{tmpoz.path}f`
+puts `#{ozc} -c -l Space --include=/Users/hash/work/ctmcp/booksuppl.oz #{tmpoz.path} && #{ozengine} #{tmpoz.path}f`
 FileUtils.rm [tmpoz.path, "#{tmpoz.path}f"]
