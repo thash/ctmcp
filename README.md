@@ -14,3 +14,9 @@ Refs
 
 * https://github.com/draftcode/ctmcp-answers
 * https://github.com/Altech/ctmcp-answers
+
+
+Presentation
+=======================
+
+[gnab/remark](https://github.com/gnab/remark) を利用
