@@ -9,7 +9,7 @@
 % by-needトリガは計算モデルに組み込まれる"暗黙的トリガ"
 
 % 計算モデルの拡張は以下のように行う
-%     * 実行領域にトリガストア(trigger store)を付加
+%     * 実行領域にトリガストア(trigger store) τ(タウ) を付加
 %     * トリガ生成操作を定義
 %     * トリガ活性化操作を定義
 %     * 必要とする(needing)とはどういうことか定義する
@@ -67,9 +67,20 @@ thread if X==Y then Z=10 end end
 
 % 知られている宣言的計算モデルをすべて概観(fig4.25) "&"は時期が一致することを示す．
 
+% 正格関数型言語の，"宣言的"という性質を保ちながら，表現力を高めるべく3個の概念を追加．
+%   * データフロー変数
+%   * 宣言的並列性
+%   * 遅延性
+
+% これらのON/OFF組み合わせによって，↓3時点の起こり方が変わってくる．
+
 % (1). 格納域の中で変数を宣言する
 % (2). 関数に変数の値を計算するよう指定する
 % (3). 関数を計算して変数を束縛する
+
+% ちなみに全組み合わせは2*2*2の8個...なのだが，データフロー変数は必ず宣言的並列性に必須なので
+%     宣言的並列性ON + データフロー変数OFF
+% はありえない．その分を除外して計6パターン．
 
 % Scheme/Standard MLなどは直列な性急実行(正格性)
 declare X=11*11 % (1) & (2) & (3)
@@ -90,18 +101,34 @@ thread {Wait X} end                   % (3)
 
 
 % なぜデータフローを伴う遅延性は並列でなければならないか
+% => 引数を並列に計算しないといけないからだよ！
+%    とのことだがmozart2ではふつーに直列に計算されちゃうっぽい．
 local
    Z
    fun lazy {F1 X} X+Z end
    fun lazy {F2 Y} Z=1 Y+Z end
 in
-   {Browse {F1 1}+{F2 2}}
+   {Browse {F1 1}+{F2 2}} % => 何も出ない
+end
+
+
+% 引数を明示的にthreadで並列にすればいい?
+local
+   Z
+   % fun定義からlazyを外して，
+   fun {F1 X} X+Z end
+   fun {F2 Y} Z=1 Y+Z end
+in
+   % 引数をthreadで囲ってやる
+   {Browse thread {F1 1} end + thread {F2 2} end}
+   % => ...と，"5"が表示される．
 end
 
 
 %% 4.5.3. 遅延ストリーム
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+declare
 fun lazy {Generate N}
    N|{Generate N+1}
 end
@@ -124,6 +151,8 @@ end
 % 遅延関数型言語においてすべての関数はデフォルトで遅延．
 % 要求駆動並列モデルではlazyと書いて明示的に遅延にする．この方がコンパイラ・プログラマ双方にとって良いだろう，と．
 
+% Haskellは正格評価を強制することもできる (foldlに対する'付きバージョンのfoldl'とかのアレ)
+
 
 %% 4.5.4. 有界バッファ
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -144,6 +173,7 @@ in
 end
 
 % 正しい例
+declare
 fun {Buffer2 In N}
    End=thread {List.drop In N} end     % ここと
    fun lazy {Loop In End}
@@ -210,6 +240,7 @@ H=1|{Merge {Times 2 H}
 {Browse H}
 
 % 単純に必要とする手続きTouchを定義
+declare
 proc {Touch N H}
    if N>0 then {Touch N-1 H.2} else skip end
 end
@@ -219,12 +250,21 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % 遅延連結
+declare
 fun lazy {LAppend As Bs}
    case As
    of nil then Bs
    [] A|Ar then A|{LAppend Ar Bs}
    end
 end
+
+L={LAppend "foo" "bar"}
+{Browse L}   % => _
+{Browse L.1} % => 102
+
+L={LAppend "foo" "bar"}
+{Touch 5 L}
+{Browse L} % => [102 111 111 98 97 104]
 
 % 任意のリストを遅延化する関数
 fun lazy {MakeLazy Ls}
