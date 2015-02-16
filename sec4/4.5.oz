@@ -305,6 +305,7 @@ in
 end
 
 % lazy reverse
+declare
 fun {LReverse S}
    fun lazy {Rev S R}
       case S
@@ -312,6 +313,9 @@ fun {LReverse S}
       [] X|S2 then {Rev S2 X|R} end
    end
 in {Rev S nil} end
+L={LReverse [1 2 3]}
+{Browse L}
+{Touch 1 L}
 
 % lazy filter
 fun lazy {LFilter L F}
@@ -328,9 +332,16 @@ end
 
 
 %%% 償却的永続的キュー
+% 3.4.5の償却的キューが永続的でない理由は，Deleteがリスト逆転を行う場合があるため．
+% 逆転を遅延関数呼び出しの一部として行うことで，償却的に戻すことが出来る．
 
+% F(Front)とR(Rear)に分けたキュー
+% q(LenF F LenR R)
+declare
 fun {NewQueue} q(0 nil 0 nil) end
 
+% Checkは遅延呼び出しを行う時期を選ぶ
+% |R| = |F| + 1となったとき遅延呼び出しLAppendを行う
 fun {Check Q}
    case Q of q(LenF F LenR R) then
       if LenF>=LenR then Q
@@ -339,12 +350,14 @@ fun {Check Q}
    end
 end
 
+% Insertは|R|を増やす
 fun {Insert Q X}
    case Q of q(LenF F LenR R) then
       {Check q(LenF F LenR+1 X|R)}
    end
 end
 
+% Deleteは|F|を減らす
 fun {Delete Q X}
    case Q of q(LenF F LenR R) then F1 in
       F=X|F1 {Check q(LenF-1 F1 LenR R)}
@@ -353,22 +366,32 @@ end
 
 
 %%% 最悪時永続的キュー
+% 上の定義が最悪時一定時間でない理由は，Reverseが一枚岩であるため．
+% 漸増的に書き換えることができれば最悪時一定時間にできる．
+% でも，リスト逆転は漸増的にできない．じゃあどうするか．
+% => Reverse実行をAppendと一緒に行う．
 
-fun {Reverse R}
-   fun {Rev R A}
-      case R
-      of nil then A
-      [] X|R2 then {Rev R2 X|A} end
-   end
-in {Rev R nil} end
+% Reverseを見なおしてみよう．
+%     fun {Reverse R}
+%        fun {Rev R A}
+%           case R
+%           of nil then A
+%           [] X|R2 then {Rev R2 X|A} end
+%        end
+%     in {Rev R nil} end
 
-fun lazy {LAppend F B}
-   case F
-   of nil then B
-   [] X|F2 then X|{LAppend F2 B}
-   end
-end
+% これを，以下のLAppendと同じループに組み込みたい．
+%     fun lazy {LAppend F B}
+%        case F
+%        of nil then B
+%        [] X|F2 then X|{LAppend F2 B}
+%        end
+%     end
 
+% で，こちらに実装したものがあります
+% 引数は両者の合算，F,R,B.
+% 繰り返しのたびごとに連結の1つの要素を求め，逆転の1つの要素を貯めこむ．
+% |R| = |F| + 1 であるようなキュー(つまり今考えてるキュー)の時のみ使える．
 fun lazy {LAppRev F R B}
    case F#R
    of nil#[Y] then Y|B
@@ -376,12 +399,15 @@ fun lazy {LAppRev F R B}
    end
 end
 
+% で，CheckをLAppendの代わりにLAppRevを使うよう書き直す．
 fun {Check Q}
    case Q of q(LenF F LenR R) then
       if LenR=<LenF then Q
       else q(LenF+LenR {LAppRev F R nil} 0 nil) end
    end
 end
+
+% 最悪時限界はO(1)ではなくO(log n)である．O(n)よりマシだが一定ではない(q4-11参照)
 
 
 %% 4.5.9. リスト内包表記
