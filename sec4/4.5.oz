@@ -408,9 +408,39 @@ fun {Check Q}
 end
 
 % 最悪時限界はO(1)ではなくO(log n)である．O(n)よりマシだが一定ではない(q4-11参照)
+% 何も考えずに遅延を導入すると, 最悪時限界を償却的限界にしてしまう．
 
 
 %% 4.5.9. リスト内包表記
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % リスト内包表記(list comprehension)
+
+Z={LFlatten
+   {LMap {LFrom 1 10}
+    fun {$ X}
+       {LMap {LFrom 1 X}
+        fun {$ Y}
+           X#Y
+        end}
+    end}}
+
+% x + yが高々10である対x#yのリストを考える
+Z={LFilter
+   {LMap {LFrom 1 10}
+    fun {$ X}
+       {LMap {LFrom 1 10}
+        fun {$ Y}
+           X#Y
+        end}
+    end}
+  fun {$ X#Y} X+Y=<10 end}
+
+% さらに，生成する要素を少なくすればもちっと効率的になる
+Z={LMap {LFrom 1 10}
+    fun {$ X}
+       {LMap {LFrom 1 10-X}
+        fun {$ Y}
+           X#Y
+        end}
+    end}
