@@ -11,7 +11,7 @@ proc {ServerProc Msg}
 end
 Server={NewPortObject2 ServerProc}
 
-
+declare
 proc {ClientProc Msg}
    case Msg
    of work(Y) then Y1 Y2 in

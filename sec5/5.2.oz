@@ -1,6 +1,21 @@
 %% 5.2.2 ポートオブジェクト例
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+declare P in
+local S in
+    {NewPort S P}
+    thread {ForAll S Browse} end
+end
+{Send P hi}
+{Send P fff}
+
+declare P in
+local S in
+    {NewPort S P}
+    thread for M in S do {Browse M} end end
+end
+{Send P fffff}
+
 declare
 fun {NewPortObject2 Proc}
 Sin in

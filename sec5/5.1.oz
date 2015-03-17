@@ -6,3 +6,4 @@ declare S P in
 {Browse S}
 {Send P a}
 {Send P b}
+{Send P c}

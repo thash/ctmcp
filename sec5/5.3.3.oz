@@ -13,14 +13,12 @@ proc {ServerProc Msg}
 end
 Server={NewPortObject2 ServerProc}
 
-% ここでの「コールバック」は，
-% Server側でYが束縛されるというイベントが起こったらクライアント側で行うこと
-% 具体的には Z=Y+100.0 の操作
+% ここでの「コールバック」は， delta
 declare
 proc {NgClientProc Msg}
    case Msg
    of work(?Z) then Y in
-      {Send Server calc(10.0 Y Client)}
+      {Send Server calc(10.0 Y NgClient)}
       % ここでYが束縛されるのを待つ(暗黙のWait)ので，deltaが来ても処理できない
       Z=Y+100.0
    [] delta(?D) then
@@ -32,24 +30,24 @@ NgClient={NewPortObject2 NgClientProc}
 % => {Send NgClient work($)} の呼び出しでデッドロックになる
 
 declare
-proc {OkClientProc Msg}
+proc {ClientProc Msg}
    case Msg
    of work(?Z) then Y in
       {Send Server calc(10.0 Y Client)}
       % ここをthreadにしている
-      thread Z=Y+100 end
+      thread Z=Y+100.0 end
    [] delta(?D) then
       D=1.0
    end
 end
-OkClient={NewPortObject2 OkClientProc}
+Client={NewPortObject2 ClientProc}
 
-{Browse {Send OkClient work($)}}
+{Browse {Send Client work($)}}
 
 
 % 次のように呼び出すと，{Send..}から帰った時点ではZはまだ束縛されていない
 declare Z in
-{Send OkClient work(Z)}
+{Send Client work(Z)}
 % Zを必要とする何らかの処理(ここでは単にWait)があれば束縛される．
 {Wait Z}
 

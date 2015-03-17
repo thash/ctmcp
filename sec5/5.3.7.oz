@@ -26,9 +26,10 @@ proc {ClientProc Msg}
 end
 Client={NewPortObject2 ClientProc}
 
-% 次の呼び出しのメッセージ図式は?
+% 次の呼び出しのメッセージ図式
 declare Y in
 {Send Client work(Y)}
 {Browse Y} % => 630.0
 
 % サーバがコールバックのあとでする仕事をthreadにしないとどうなるか?
+% => Dが束縛されるのを待ち続ける
