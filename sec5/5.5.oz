@@ -24,6 +24,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % 再掲
+declare
 fun {NewPortObject Init Fun}
 Sin Sout in
     thread {FoldL Sin Fun Init Sout} end
@@ -37,7 +38,6 @@ Sin in
 end
 
 % パーツ
-declare
 fun {Timer}
    {NewPortObject2
     proc {$ Msg}
@@ -47,6 +47,8 @@ fun {Timer}
    end}
 end
 
+% 注意: バッククォートかと思ったらだいたいシングルクォート
+
 % 制御装置(Controller)
 % 状態: モーター停止，モーター稼働
 % https://github.com/memerelics/ctmcp/tree/master/sec5/img/fig5.7.png
@@ -54,10 +56,11 @@ fun {Controller Init}
    Tid={Timer}
    Cid={NewPortObject Init
         fun {$ state(Motor F Lid) Msg}
-           case Motor %モーターの状態
+           case Motor
            of running then
-              case stoptimer then
-                 {Send Lid `at`(F)}
+              case Msg
+              of stoptimer then
+                 {Send Lid 'at'(F)}
                  state(stopped F Lid)
               end
            [] stopped then
@@ -91,11 +94,11 @@ fun {Floor Num Init Lifts}
            of notcalled then Lran in
               case Msg
               of arrive(Ack) then
-                 {Browse `Lift at floor `#Num#`: open dorrs`}
+                 {Browse 'Lift at floor '#Num#': open dorrs'}
                  {Send Tid starttimer(5000 Fid)}
                  state(doorsopen(Ack))
               [] call then
-                 {Browse `Floor `#Num#` calls a lift!`}
+                 {Browse 'Floor '#Num#' calls a lift!'}
                  Lran=Lifts.(1+{OS.rand} mod {Width Lifts})
                  {Send Lran call(Num)}
                  state(called)
@@ -103,7 +106,7 @@ fun {Floor Num Init Lifts}
            [] called then
               case Msg
               of arrive(Ack) then
-                 {Browse `Lift at floor `#Num#`: open doors`}
+                 {Browse 'Lift at floor '#Num#': open doors'}
                  {Send Tid starttimer(5000 Fid)}
                  state(doorsopen(Ack))
               [] call then
@@ -112,7 +115,7 @@ fun {Floor Num Init Lifts}
            [] doorsopen(Ack) then
               case Msg
               of stoptimer then
-                 {Browse `Lift at floor `#Num#`: close doors`}
+                 {Browse 'Lift at floor '#Num#': close doors'}
                  Ack=unit % データフロー変数の束縛，軽量メッセージ
                  state(notcalled)
               [] arrive(A) then
@@ -149,7 +152,7 @@ fun {Lift Num Init Cid Floors}
     fun {$ state(Pos Sched Moving) Msg}
        case Msg
        of call(N) then
-          {Browse `Lift `#Num#` needed at floor `#N}
+          {Browse 'Lift '#Num#' needed at floor '#N}
           if N==Pos andthen {Not Moving} then
              % 目的階に到着してもFIFOだから
              % 別の階に向かってて通り過ぎてる場合があるのか
@@ -162,8 +165,8 @@ fun {Lift Num Init Cid Floors}
                 {Send Cid step(N)} end
              state(Pos Sched2 true)
           end
-       [] `at`(NewPos) then
-          {Browse `Lift `#Num#` at floor `#NewPos}
+       [] 'at'(NewPos) then
+          {Browse 'Lift '#Num#' at floor '#NewPos}
           case Sched
           of S|Sched2 then
              if NewPos==S then
@@ -200,9 +203,12 @@ end
 
 % 動かす
 declare F L in
+% 10階建て，2個のリフトを持つビル
 {Building 10 2 F L}
+% 呼ぶリフトを指定しない
 {Send F.9 call}
 {Send F.10 call}
+% N階からリフト(L)を指定して呼ぶ
 {Send L.1 call(4)}
 {Send L.2 call(5)}
 
