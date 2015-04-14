@@ -4,10 +4,16 @@
 %%% 5.6.1 1つのスレッドを共有する複数のポートオブジェクト
 
 % 複数のポートオブジェクトがすべて1つのスレッドを通るようにする．
-% 別のオブジェクトの計算を待つことが出来ない．プログラムの書き方が特殊になる
+% スケジューリングを考える必要がない.
+% 別のオブジェクトの計算を待つことが出来ず, 本質的に直列に書くのと変らない．
+% ので, "プログラムの書き方が特殊になる"
+% オブジェクトは状態を保てない. {大域的 or メッセージ引数に格納}のいずれか.
 
+declare
 proc {NewPortObjects ?AddPortObject ?Call}
-   Sin P={NewPort Sin} % この書き方前にも出てきたっけ?
+   % ポートPにメッセージを投げると, 処理スレッドに渡る
+   % この書き方前にも出てきたっけ? NewPortの返り値, 入る方と出る方指定できるらしい
+   Sin P={NewPort Sin}
    proc {MsgLoop S1 Procs}
       case S1
       of add(I Proc Sync)|S2 then Procs2 in
@@ -32,6 +38,27 @@ in
    end
 end
 
+% 10.4.1(p.712)の内容, NewProgWindowをコピペ >>> ココカラ
+declare
+[QTk]={Module.link ["x-oz://system/wp/QTk.ozf"]}
+fun {NewProgWindow CheckMsg}
+   InfoHdl See={NewCell true}
+   H D=td(title:"Progress monitor"
+          label(text:nil handle:InfoHdl)
+          checkbutton(
+             text:CheckMsg handle:H init:true
+             action:proc {$} See:={H get($)} end))
+in
+   {{QTk.build D} show}
+   proc {$ Msg}
+      if @See then {Delay 50} {InfoHdl set(text:Msg)} end
+   end
+end
+% <<< ココマデ
+
+
+% Showの出力を見るのは M-x oz-toggle-emulator
+% {Show {AdjoinAt procs 1 foo}}
 
 %% ピンポンプログラム．1つのスレッドを共有する2つのポートオブジェクト
 declare AddPortObject Call
@@ -42,7 +69,7 @@ InfoMsg={NewProgWindow "See ping-pong"}
 fun {PingPongProc Other}
    proc {$ Msg}
       case Msg
-      of ping(M) then
+      of ping(N) then
          {InfoMsg "ping("#N#")"}
          {Call Other pong(N+1)}
       [] pong(N) then
@@ -57,6 +84,16 @@ end
 {Call pingobj ping(0)}
 
 
+% 復習
+% {Browse {Q.get $}}
+% は
+% local X in
+%    {Q.get X}
+%    {Browse X}
+% end
+% と等価
+
+
 %%% 5.6.2 ポートを使う並列キュー
 
 % FIFOキューのように振る舞うスレッド
@@ -66,7 +103,7 @@ end
 % 図5.18 正しい版(動く)
 
 fun {NewQueue}
-   % なにこの構文
+   % NewPortの定義
    Given GivePort={NewPort Given}
    Taken TakePort={NewPort Taken}
    proc {Match Xs Ys}
@@ -184,6 +221,7 @@ declare
 proc {ConcFilter L F ?L2}
    Send Close
 in
+   % L2に対してメッセージを送りまくって終わったらCloseする
    {NewPortClose L2 Send Close}
    {Barrier
     {Map L
@@ -194,3 +232,6 @@ in
      end}}
    {Close}
 end
+
+{Show {ConcFilter [1 2 3 4 5 6] fun {$ X} (X mod 2)==0 end}}
+% => [2 4 6]
