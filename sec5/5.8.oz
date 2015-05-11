@@ -12,6 +12,37 @@
 % 「ストリームオブジェクトが入力ストリームにアクセスするパターンが一定であること」
 % 2つのストリームが同じストリームオブジェクトに独立に供給することはできない．
 
+% 動かないver
+fun {StreamManager OutS1 OutS2}
+   case OutS1#OutS2
+   of (M|NewS1)#OutS2 then
+      M|{StreamManager NewS1 OutS2}
+   [] OutS1#(M|NewS2) then
+      M|{StreamManager OutS1 NewS2}
+   [] nil#OutS2 then
+      OutS2
+   [] OutS1#nil then
+      OutS1
+   end
+end
+
+% 改良ver
+fun {StreamManager OutS1 OutS2}
+   F={WaitTwo OutS1 OutS2}
+in
+   case F#OutS1#OutS2
+   of 1#(M|NewS1)#OutS2 then
+      M|{StreamManager NewS1 OutS2}
+   [] 2#OutS1#(M|NewS2) then
+      M|{StreamManager OutS1 NewS2}
+   [] 1#nil#OutS2 then
+      OutS2
+   [] 2#OutS1#nil then
+      OutS1
+   end
+end
+
+
 % booksuppl.oz よりWaitTwoの実装抽出... Record.waitOrとは?
 fun {WaitTwo X Y}
    {Record.waitOr X#Y}
