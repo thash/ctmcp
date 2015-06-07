@@ -23,7 +23,16 @@
 
 %% 6.1.1. 暗黙的(宣言的)状態
 
-% SumList
+% 宣言的関数SumList
+fun {SumList Xs S}
+   case Xs
+   of nil then S
+   [] X|Xr then {SumList Xr X+S}
+   end
+end
+
+% > SumListは状態を伴って計算している．しかし，プログラムも計算モデルもこのことを「知っている(know)」わけではない．この状態は，完全にプログラマの心のなかにある．
+
 
 %% 6.1.2. 明示的状態
 
@@ -38,10 +47,21 @@
 % たとえば単純な状態として，手続きが呼ばれた階数を保持するようにする．
 % := は新しい内容を入れ，@で参照する．
 
-% local
-%     C={NewCell 0}
-% in
-% ...
+% セルを使って，SumListに長期記憶を追加する．
+% たとえば，SumList自身が何度呼ばれたかを記憶させる．
+local
+    C={NewCell 0}
+in
+   fun {SumList Xs S}
+      C:=@C+1
+      case Xs
+      of nil then S
+      [] X|Xr then {SumList Xr X+S}
+      end
+   end
+   fun {SumCount} @C end
+end
+
 
 % > 明示的状態へのアクセスは，そのデータ抽象の操作に制限される．
 % > この考え方はオブジェクト指向システムの核心である．
