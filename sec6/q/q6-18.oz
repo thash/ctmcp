@@ -1,0 +1,1 @@
+% words of mouth simulationにおけるパフォーマンス効果
