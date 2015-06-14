@@ -77,6 +77,8 @@ in
     end G}
 end
 
+% XというkeyでGという辞書を検索, 見つかった(X==Y)らvalueを返す.
+% なければ次の要素を再帰的に検索していくもの
 fun {Succ X G}
    case G of Y#SY|G2 then
       if X==Y then SY else {Succ X G2} end
@@ -100,7 +102,8 @@ end
 % => [1#[2 2 3] 2#[1 2 3] 3#nil]
 
 % 今回のリストは順序付きなので，Union実行時間は短い方のリストの長さに比例
-% もしリストが順序付きではにと，Union実行時間は2つのリストの長さの積に比例する(なぜか?
+% もしリストが順序付きではないと，Union実行時間は2つのリストの長さの積に比例する(なぜか?
+% => O(mn) になるから.
 
 %% 状態ありアルゴリズム
 % グラフは行列として表されている．初期グラフを破壊的に更新して遷移的閉包を作る．
@@ -112,7 +115,8 @@ proc {StateTrans GM}
 in
    for K in L..H do
       for I in L..H do
-         if GM.I.K then
+         % この部分で全elemを舐めてる
+         if GM.I.K then % 自身がtrue(1)なら他要素の更新を試みる
             for J in L..H do
                % "GM.K.Jが真であれば，Jがsucc(K,GM)の中にあることに注意する"
                if GM.K.J then GM.I.J:=true end
@@ -131,6 +135,7 @@ GM={L2M [1#[2 3] 2#[1] 3#nil]}
 
 
 %% 第二の宣言的アルゴリズム (状態ありアルゴリズムをヒントに改良
+% 宣言的といいつつ, Haskellみたいな未束縛変数を許さない言語だと実装できない作りになってる
 declare
 fun {DeclTrans2 GT}
    H={Width GT}
@@ -139,7 +144,8 @@ fun {DeclTrans2 GT}
          G={MakeTuple g H} in
          % ここと...
          for I in 1..H do
-            % ここに, threadを入れると並列版ができる
+            % ここに, threadを入れると並列版ができる.
+            % 行列で見て各要素が裏返るかどうかの判断は独立に可能であるため
             G.I={MakeTuple g H}
             for J in 1..H do
                G.I.J = InG.I.J orelse (InG.I.K andthen InG.K.J)
@@ -153,11 +159,22 @@ in
 end
 
 
+%% 検討
+% Floyd-Warshall アルゴリズム (Floydの方がリスト, Warshallが行列)
+% 漸近的実行時間はO(n^3)
+% 理解しやすいのは状態あり版アルゴリズム. 条件付きの3重入れ子ループであり行列を明白な方法で更新する．
+% 状態あり版で書くと，プログラムが分解不可能になりやすい.
+
+% グラフが疎である場合，隣接リスト定義(+ 第一の宣言的アルゴリズム)が最も効率が良い
+% グラフが疎かどうかは"任意のノード対の間に辺がある確率p"を用いて考える．
+
+
 %% 6.8.2. 単語出現頻度(状態あり辞書を使用する
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % 図6.14
-% 本文だと "..." で省略されてるところがweb補足資料だと明記されてる. 略すのひどいな
+% 本文だと "..." で省略されてるところがweb補足資料だと明記されてる
+% => 略してたのはp.205(Fig3.30)と同じだからか.
 declare
 fun {WordChar C}
    (&a=<C andthen C=<&z) orelse
@@ -203,6 +220,11 @@ in
    D
 end
 
+declare
+T="Oh my darling, oh my darling, oh my darling Clementine.
+She is lost and gone forever, oh my darling Clementine."
+{Browse {WordFreq T}}
+
 
 %% 6.8.3. 乱数を生成すること
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -216,21 +238,36 @@ end
 % > 真のランダム性を望み，しかも再現可能であることを望む
 % > このジレンマから抜け出すには? 簡単である．乱数を計算すればよい．
 % > どうやって真の乱数を発生するのか? 早い話，それはできない．
-% > しかし，すべての実用的目的に大して，乱数らしく見える数はある．そういう数は擬似乱数(pseudorandom number)と言われる．
+% > しかし，すべての実用的目的に大して，乱数らしく見える数はある．
+% > そういう数は擬似乱数(pseudorandom number)と言われる．
 
-declare NewRand in
+% 参考文献 Knuth[114] = The Art of computer Programming: Seminumerical Algorithm, vol 2.
+% 原著: http://www.amazon.com/dp/0201896842
+% 邦訳: http://www.amazon.co.jp/dp/4756145434
 
+% 乱数発生器の満たすべき条件
+%   1. 発生した乱数が強い統計的性質を満たす
+%   2. 正しい分布をする
+%   3. 周期が十分長い
+
+% 乱数発生器は内部状態をもち，それを基に次の乱数と次の内部状態を計算する
+% seed で初期化，seedが同じであれば同じ乱数列が出てくる (再現性)
+
+declare NewRand Rand RandList Init FMax Uniform UniformI Exponential TwoPi Gauss in
+
+% NewRandは3個の参照を返す.
+% Rand (乱数発生法 (原文ではa random number generator)), Init (Randの初期化手続き), Max (Randの最大値)
 local A=333667 B=213453321 M=1000000000 in
    proc {NewRand ?Rand ?Init ?Max}
       X={NewCell 0} in
       fun {Rand} X:=(A*@X+B) mod M end
-      proc {Init Seed} X:=Seed end
+      proc {Init Seed} X:=Seed end % Randの利用する内部状態Cell XをSeed(0..(Max-1))で初期化
    end
 end
 
 % 状態(NewCell)の代わりに遅延を使う方法もある
 local A=333667 B=213453321 M=1000000000 in
-   fun lazy {RandList $0}
+   fun lazy {RandList S0}
       S1=(A*S0+B) mod M in S1|{RandList S1}
    end
 end
@@ -241,44 +278,54 @@ FMax={IntToFloat Max}
 fun {Uniform}
    {IntToFloat {Rand}}/FMax
 end
+
 fun {UniformI A B}
-   A+{FloatToInt {Floor {Uniform}*{IntToFloat B-A+1}}}
+   A+{FloatToInt {Float.floor {Uniform}*{IntToFloat B-A+1}}}
 end
 
 fun {Exponential Lambda}
    % ~ ってなんだっけ
-   ~{Log 1.0-{Uniform}}/Lambda
+   ~{Float.log 1.0-{Uniform}}/Lambda
 end
 
 TwoPi=4.0*{Float.acos 0.0}
 fun {Gauss}
-   {Sqrt ~2.0*{Log {Uniform}}} * {Cos TwoPi*{Uniform}}
+   {Float.sqrt ~2.0*{Float.log {Uniform}}} * {Float.cos TwoPi*{Uniform}}
 end
 
 local GaussCell={NewCell nil} in
+
    fun {Gauss}
+      % {Exchange +C X Y}: Swaps atomically the content of C from X to Y
       Prev={Exchange GaussCell $ nil}
    in
       if Prev\=nil then Prev
       else R Phi in
-         R={Sqrt ~2.0*{Log {Uniform}}}
+         R={Float.sqrt ~2.0*{Float.log {Uniform}}}
          Phi=TwoPi*{Uniform}
-         GaussCell:=R*{Cos Phi}
-         R*{Sin Phi}
+         GaussCell:=R*{Float.cos Phi}
+         R*{Float.sin Phi}
       end
    end
 end
+
+% Sin, Cos, Log, Sqrt 関数は定義されておらずFloat名前空間下にあるので
+% Float.sin などに書き換える
+% ref: https://mozart.github.io/mozart-v1/doc-1.4.0/base/float.html
+% ExchangeはCell.exchange?
 
 
 %% 6.8.4. 口コミ(word of mouth)シミュレーション
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % 10000ユーザ, 50万ユーザで200ラウンド
+% 前節で定義した関数Init, UniformI, Gaussを利用
 
-declare
+declare File
+[File]={Module.link ["x-oz://system/wp/File.ozf"]}
 N=10000 M=500000 T=200
-{Init 0}
-{File.writeOpen 'wordofmouth.txt'}
+{Init 0} % Initは前節で定義したもの
+{File.writeOpen '/Users/hash/work/ctmcp/wordofmouth.txt'}
 proc {Out S}
    {File.write {Value.toVirtualString S 10 10}#"\n"}
 end

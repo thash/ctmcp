@@ -39,6 +39,7 @@ in
 end
 
 % 10.4.1(p.712)の内容, NewProgWindowをコピペ >>> ココカラ
+% tags: load, require, 読み込み, include, モジュール, リンク
 declare
 [QTk]={Module.link ["x-oz://system/wp/QTk.ozf"]}
 fun {NewProgWindow CheckMsg}
