@@ -253,19 +253,46 @@ She is lost and gone forever, oh my darling Clementine."
 % 乱数発生器は内部状態をもち，それを基に次の乱数と次の内部状態を計算する
 % seed で初期化，seedが同じであれば同じ乱数列が出てくる (再現性)
 
-declare NewRand Rand RandList Init FMax Uniform UniformI Exponential TwoPi Gauss in
 
 % NewRandは3個の参照を返す.
 % Rand (乱数発生法 (原文ではa random number generator)), Init (Randの初期化手続き), Max (Randの最大値)
+declare NewRand
 local A=333667 B=213453321 M=1000000000 in
    proc {NewRand ?Rand ?Init ?Max}
       X={NewCell 0} in
       fun {Rand} X:=(A*@X+B) mod M end
       proc {Init Seed} X:=Seed end % Randの利用する内部状態Cell XをSeed(0..(Max-1))で初期化
+      Max=M
    end
 end
 
+% 使ってみる
+declare Rand Init Max in
+{NewRand Rand Init Max}
+{Init 100}
+{Browse Max} % => 1000000000
+{Browse {Rand}} % => 100
+{Browse {Rand}} % => 246820021
+{Browse {Rand}} % => 909400328 ...
+
+declare Rand Init Max in
+{NewRand Rand Init Max}
+{Init 9999}
+{Browse {Rand}} % => 9999
+{Browse {Rand}} % => 549789654
+{Browse {Rand}} % => 877934539 ...
+
+% Seedが同じなら再現性があることを確認
+declare Rand Init Max in
+{NewRand Rand Init Max}
+{Init 100}
+{Browse {Rand}} % => 100, 246820021, 909400328 ...
+
+
 % 状態(NewCell)の代わりに遅延を使う方法もある
+% Cellの代わりに再帰関数RandListの引数に状態を保存する
+
+declare RandList
 local A=333667 B=213453321 M=1000000000 in
    fun lazy {RandList S0}
       S1=(A*S0+B) mod M in S1|{RandList S1}
