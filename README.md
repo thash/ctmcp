@@ -1,10 +1,20 @@
 https://github.com/ojima-h/ctmcp-reading/wiki
 
-本に乗ってるソースコード
-https://www.info.ucl.ac.be/~pvr/bookfigures/
 
-補足
-http://www.info.ucl.ac.be/~pvr/ds/booksuppl.oz
+### 本に乗ってるソースコード
+
+* https://www.info.ucl.ac.be/~pvr/bookfigures/
+* https://www.info.ucl.ac.be/~pvr/ds/mitbook.html
+  * http://www.info.ucl.ac.be/~pvr/ds/booksuppl.oz
+  * https://www.info.ucl.ac.be/~pvr/ds/File.oz
+  * ... etc
+
+
+### install される Mozart2 のリソース
+
+```
+$ cd /Applications/Mozart2.app/Contents/Resources/share/mozart/
+```
 
 
 Review

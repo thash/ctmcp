@@ -299,47 +299,69 @@ local A=333667 B=213453321 M=1000000000 in
    end
 end
 
-% 一様でない分布．
-% ...の前にまずは0から1までの一様分布乱数を作る
+declare RList
+RList={RandList 100}
+
+% 一様でない分布
+% まずは0から1までの一様分布乱数を作る.
+
+% random number generatorを初期化
+declare Rand Init Max in {NewRand Rand Init Max}
+
+declare FMax Uniform % UniformI Exponential TwoPi Gauss in
 FMax={IntToFloat Max}
 fun {Uniform}
    {IntToFloat {Rand}}/FMax
 end
+% {Browse {Uniform}} % => 0.0
+% {Browse {Uniform}} % => 0.21345
+% {Browse {Uniform}} % => 0.54271
 
+declare UniformI
 fun {UniformI A B}
-   A+{FloatToInt {Float.floor {Uniform}*{IntToFloat B-A+1}}}
+   A+{FloatToInt {Floor {Uniform}*{IntToFloat B-A+1}}}
 end
+% {Browse {UniformI 1 100}}
 
+declare
 fun {Exponential Lambda}
-   % ~ ってなんだっけ
-   ~{Float.log 1.0-{Uniform}}/Lambda
+   % ~ は否定の論理演算
+   % ref: https://mozart.github.io/mozart-v1/doc-1.4.0/base/number.html
+   ~{Log 1.0-{Uniform}}/Lambda
 end
 
-TwoPi=4.0*{Float.acos 0.0}
-fun {Gauss}
-   {Float.sqrt ~2.0*{Float.log {Uniform}}} * {Float.cos TwoPi*{Uniform}}
-end
+% TwoPi=4.0*{Float.acos 0.0}
+% fun {Gauss}
+%    {Float.sqrt ~2.0*{Float.log {Uniform}}} * {Float.cos TwoPi*{Uniform}}
+% end
 
-local GaussCell={NewCell nil} in
-
+declare Gauss
+local
+   TwoPi=4.0*{Float.acos 0.0}
+   GaussCell={NewCell nil}
+in
    fun {Gauss}
       % {Exchange +C X Y}: Swaps atomically the content of C from X to Y
       Prev={Exchange GaussCell $ nil}
    in
       if Prev\=nil then Prev
       else R Phi in
-         R={Float.sqrt ~2.0*{Float.log {Uniform}}}
+         R={Sqrt ~2.0*{Log {Uniform}}}
          Phi=TwoPi*{Uniform}
-         GaussCell:=R*{Float.cos Phi}
-         R*{Float.sin Phi}
+         GaussCell:=R*{Cos Phi}
+         R*{Sin Phi}
       end
    end
 end
+% {Browse {Gauss}} % => 1.7224
+% {Browse {Gauss}} % => -1.2222
+% {Browse {Gauss}} % => 1.3879
 
-% Sin, Cos, Log, Sqrt 関数は定義されておらずFloat名前空間下にあるので
-% Float.sin などに書き換える
+% Floor, Sin, Cos, Log, Sqrt などFloat以下の関数が定義されていない問題
+% => Mozart2入れなおしたら直った...
 % ref: https://mozart.github.io/mozart-v1/doc-1.4.0/base/float.html
-% ExchangeはCell.exchange?
+
+% Exchangeの処理を確認 => ../misc/exchange.oz
 
 
 %% 6.8.4. 口コミ(word of mouth)シミュレーション
@@ -348,23 +370,47 @@ end
 % 10000ユーザ, 50万ユーザで200ラウンド
 % 前節で定義した関数Init, UniformI, Gaussを利用
 
-declare File
-[File]={Module.link ["x-oz://system/wp/File.ozf"]}
-N=10000 M=500000 T=200
-{Init 0} % Initは前節で定義したもの
+% Fileを使う方法がうまく行かなかったので
+% https://mozart.github.io/mozart-v1/doc-1.4.0/op/node6.html
+% でファイルに書き出す
+
+% % declare [File]={Module.link ['File.ozf']}
+
+% "この本のウェブサイトのFileモジュールにある漸増的書き出し操作を使用する"
+% https://www.info.ucl.ac.be/~pvr/ds/File.oz
+%     $ /path/to/ozc -c File.oz
+
+declare [File]={Module.link ['/Users/hash/work/ctmcp/File.ozf']}
 {File.writeOpen '/Users/hash/work/ctmcp/wordofmouth.txt'}
 proc {Out S}
    {File.write {Value.toVirtualString S 10 10}#"\n"}
 end
 
-Sites={MakeTuple sites N}
+%%% test >>>
+% {Browse File}
+% {Browse File.write}
+% {Out aaaaaaaa}
+% {File.writeClose}
+%%% test <<<
+
+% declare N=10000 M=500000 T=200
+declare N M T in N=100 M=5000 T=2
+
+% random number generatorを初期化
+declare Rand Init Max in {NewRand Rand Init Max}
+{Init 0}
+
+declare Sites={MakeTuple sites N}
+% {Browse Sites}
+
 for I in 1..N do
    Sites.I={Record.toDictionary
             o(hits:0 performance:{IntToFloat {UniformI 1 80000}})
            }
 end
+% {Browse Sites}
 
-Users={MakeTuple users M}
+declare Users={MakeTuple users M}
 for I in 1..M do S={UniformI 1 N} in
    Users.I={Record.toDictionary o(currentSite:S)}
    Sites.S.hits := Sites.S.hits + 1
@@ -397,23 +443,27 @@ in
    end
 end
 
+% {Browse Users}
+
 % Fig 6.16
 % 完全な(1 stepのみじゃない)シミュレーション
-declare
 for J in 1..N do
-   {Out {Record.adjoinAt
-           {Dictionary.toRecord site Sites.J} name J}}
+   % {Browse {Dictionary.toRecord site Sites.J}}
+   {Out {Record.adjoinAt {Dictionary.toRecord site Sites.J} name J}}
 end
 {Out endOfRound(time:0 nonZeroSites:N)}
+
 for I in 1..T do X={NewCell 0} in
    for U in 1..M do {UserStep U} end
    for J in 1..N do H=Sites.J.hits in
       if H\=0 then
-         {Out {Record.adjoinAt
-                 {Dictionary.toRecord site Sites.J} name J}}
+         % {Browse {Record.adjoinAt {Dictionary.toRecord site Sites.J} name J}}
+         {Out {Record.adjoinAt {Dictionary.toRecord site Sites.J} name J}}
          X := @X+1
       end
    end
+   % {Browse endOfRound(time:I nonZeroSites:@X)}
    {Out endOfRound(time:I nonZeroSites:@X)}
 end
+
 {File.writeClose}

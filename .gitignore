@@ -1,3 +1,6 @@
+# $ /path/to/ozc -c File.oz
 *.ozf
 .DS_Store
 clone/
+
+*.txt
