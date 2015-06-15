@@ -32,3 +32,25 @@ S1={NewStack}
 S2={S1.push 23}
 S3={S2.pop E}
 {Browse E} % => 23
+
+
+% 参考: https://github.com/Altech/ctmcp-answers/blob/master/Section06/expr6.mkd
+% 名前値を与える?
+
+declare
+local
+   fun {StackObject Name S}
+      fun {Name} Name end
+      fun {Push E} {StackObject Name E|S} end
+      fun {Pop ?E}
+         case S of X|S1 then E=X {StackObject Name S1} end
+      end
+      fun {IsEmpty} S==nil end
+   in stack(name:Name push:Push pop:Pop isEmpty:IsEmpty) end
+in
+   fun {NewStack Name} {StackObject Name nil} end
+end
+
+declare S1 S2 S3 E in
+S1={NewStack "hoge"}
+{Browse S1.name} % => <P/1 Name>

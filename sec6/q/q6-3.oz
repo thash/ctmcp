@@ -28,13 +28,17 @@ declare S1 X Y in
 S=access(X)|assign(3)|access(Y)|S1
 % Xに0(初期内容)が束縛され，コンテナに3が入り，その後Yに3が束縛される
 
-{Browse S}
+{Browse S}  % => access(0)|assign(3)|access(3)|_
 {Browse X} % => 0
 {Browse Y} % => 3
 
-% ;; たしかにそうなってるが... 使い方がよくわからん
+{Browse S.1} % => access(0)
+{Browse S.2} % => access(3)|access(3)|_
 
-{Browse S}  % => access(0)|assign(3)|access(3)|_
+{Browse S.1}   % => access(0)
+{Browse S.1.1} % => 0
+{Browse S.2.1} % => access(3)
+
 {Browse S1} % => _
 
 
@@ -48,7 +52,7 @@ fun {SumList Xs S}
 end
 
 % 並列版
-declare SumList in
+declare SumList
 local Prev Next S1 Container={MakeState 0} in
    fun {SumList Xs S}
       Container=access(Prev)|assign(Prev+1)|access(Next)|S1
@@ -61,6 +65,6 @@ local Prev Next S1 Container={MakeState 0} in
 end
 
 {Browse {SumList [1 2 3 4] 0}}
-% NextをBrowseしてみても，呼び出し回数をCount up してくれない (常に1が出る
 
-% さらに, 6.1.2のように内部にSumCountを追加しようとするとどうなるか?
+
+% TODO: さらに, 6.1.2のように内部にSumCountを追加しようとするとどうなるか?
