@@ -29,7 +29,10 @@ for J in 1..10 do A.J={NewCell 0} end
 
 I={NewCell 1}
 (A.1):=2
-(A.2):=1
+% (A.2):=1
+(A.2):=3
+
+for J in 1..10 do {Browse @(A.J)} end
 {Swap fun {$} I end fun {$} A.@I end}
 
 % Swapが起こる
@@ -54,7 +57,7 @@ proc {Sqr A}
    B={A}
 in
    {Browse aaa}
-   B:=@B*@B
+   % B:=@B*@B
    {Browse bbb}
 end
 
@@ -65,10 +68,9 @@ proc {Sqr A}
    B={fun lazy {$} {A} end}
 in
    {Browse aaa}
-   B:=@B*@B % この行をコメントアウトするとhikisuuが出ないことが確認できる
+   % B:=@B*@B % この行をコメントアウトするとhikisuuが出ないことが確認できる
    {Browse bbb}
 end
-
 
 local C={NewCell 0} in
    C:=25

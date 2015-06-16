@@ -313,16 +313,16 @@ FMax={IntToFloat Max}
 fun {Uniform}
    {IntToFloat {Rand}}/FMax
 end
-% {Browse {Uniform}} % => 0.0
-% {Browse {Uniform}} % => 0.21345
-% {Browse {Uniform}} % => 0.54271
+{Browse {Uniform}} % => 0.0
+{Browse {Uniform}} % => 0.21345
+{Browse {Uniform}} % => 0.54271
 
 declare UniformI
 fun {UniformI A B}
    A+{FloatToInt {Floor {Uniform}*{IntToFloat B-A+1}}}
 end
-% {Browse {UniformI 1 100}}
-
+{Browse {UniformI 1 100}}
+{Browse {UniformI 99999 10000000}}
 declare
 fun {Exponential Lambda}
    % ~ は否定の論理演算
@@ -330,10 +330,16 @@ fun {Exponential Lambda}
    ~{Log 1.0-{Uniform}}/Lambda
 end
 
-% TwoPi=4.0*{Float.acos 0.0}
-% fun {Gauss}
-%    {Float.sqrt ~2.0*{Float.log {Uniform}}} * {Float.cos TwoPi*{Uniform}}
-% end
+{Browse {Exponential 1.2}}
+
+declare
+TwoPi=4.0*{Float.acos 0.0}
+fun {Gauss}
+   {Float.sqrt ~2.0*{Float.log {Uniform}}} * {Float.cos TwoPi*{Uniform}}
+end
+
+{Browse {Gauss}}
+
 
 declare Gauss
 local
@@ -370,10 +376,6 @@ end
 % 10000ユーザ, 50万ユーザで200ラウンド
 % 前節で定義した関数Init, UniformI, Gaussを利用
 
-% Fileを使う方法がうまく行かなかったので
-% https://mozart.github.io/mozart-v1/doc-1.4.0/op/node6.html
-% でファイルに書き出す
-
 % % declare [File]={Module.link ['File.ozf']}
 
 % "この本のウェブサイトのFileモジュールにある漸増的書き出し操作を使用する"
@@ -394,7 +396,7 @@ end
 %%% test <<<
 
 % declare N=10000 M=500000 T=200
-declare N M T in N=100 M=5000 T=2
+declare N M T in N=100 M=5000 T=20
 
 % random number generatorを初期化
 declare Rand Init Max in {NewRand Rand Init Max}

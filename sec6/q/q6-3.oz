@@ -3,7 +3,6 @@
 
 % (a).
 % 並列性を使って更新可能なコンテナを生成
-% "コンテナ"って表現初めて出てきた?
 % 再帰的手続きを使ってストリームを読むスレッドを生成する
 declare
 fun {MakeState Init}
@@ -20,7 +19,7 @@ end
 
 % 別threadでLoopし続け，メッセージを待ち受ける?
 
-S={MakeState 0}
+declare S={MakeState 0}
 % という呼び出しにより，初期内容0の新しいコンテナが生成される．
 
 % ストリームにコマンドを送出することによりコンテナを使用する．
@@ -31,14 +30,6 @@ S=access(X)|assign(3)|access(Y)|S1
 {Browse S}  % => access(0)|assign(3)|access(3)|_
 {Browse X} % => 0
 {Browse Y} % => 3
-
-{Browse S.1} % => access(0)
-{Browse S.2} % => access(3)|access(3)|_
-
-{Browse S.1}   % => access(0)
-{Browse S.1.1} % => 0
-{Browse S.2.1} % => access(3)
-
 {Browse S1} % => _
 
 
@@ -51,20 +42,27 @@ fun {SumList Xs S}
    end
 end
 
-% 並列版
-declare SumList
-local Prev Next S1 Container={MakeState 0} in
-   fun {SumList Xs S}
-      Container=access(Prev)|assign(Prev+1)|access(Next)|S1
-      {Browse Next}
+
+% ref: https://github.com/Altech/ctmcp-answers/blob/master/Section06/expr3.oz
+
+declare
+fun {SumList Xs S}
+   Container={MakeState S}
+   fun {Iter Xs Cs}
       case Xs
-      of nil then S
-      [] X|Xr then {SumList Xr X+S}
+      of nil then C|Cr=Cs Y in
+         C=access(Y)
+         Y
+      [] X|Xr then C1|C2|Cr=Cs Y in
+         {Browse Y}
+         C1=access(Y)
+         C2=assign(X+Y)
+         {Iter Xr Cr}
       end
    end
+in
+   {Iter Xs Container}
 end
-
 {Browse {SumList [1 2 3 4] 0}}
 
-
-% TODO: さらに, 6.1.2のように内部にSumCountを追加しようとするとどうなるか?
+%% さらに, 6.1.2のように内部にSumCountを追加しようとするとどうなるか?

@@ -35,22 +35,31 @@ S3={S2.pop E}
 
 
 % 参考: https://github.com/Altech/ctmcp-answers/blob/master/Section06/expr6.mkd
-% 名前値を与える?
+% 名前値 {NewName}
 
 declare
 local
-   fun {StackObject Name S}
-      fun {Name} Name end
-      fun {Push E} {StackObject Name E|S} end
+   fun {StackObject S}
+      % fun {Name} Name end
+      fun {Push E} {StackObject E|S} end
       fun {Pop ?E}
-         case S of X|S1 then E=X {StackObject Name S1} end
+         case S of X|S1 then E=X {StackObject S1} end
       end
       fun {IsEmpty} S==nil end
-   in stack(name:Name push:Push pop:Pop isEmpty:IsEmpty) end
+   in stack(name:{NewName} push:Push pop:Pop isEmpty:IsEmpty) end
 in
-   fun {NewStack Name} {StackObject Name nil} end
+   fun {NewStack} {StackObject nil} end
 end
 
 declare S1 S2 S3 E in
-S1={NewStack "hoge"}
-{Browse S1.name} % => <P/1 Name>
+S1={NewStack}
+{Browse S1.name} % +> <N>
+{Browse S1.name == S1.name}
+% => <P/1 Name>
+
+S2={NewStack}
+{Browse S1.name == S2.name}
+{Browse S1 == S2}
+{Browse S1 == S1}
+
+% 状態が変わってもnameが一意になってほしい

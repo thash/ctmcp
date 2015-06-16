@@ -22,10 +22,16 @@ var a:array [1..10] of integer;
 var i:integer;
 i:=1; a[1]:=2; a[2]=1; % a[2]だけ=になってるのは誤植?
 
-swap(i, a[i])
+[2, 1, ...]
+[1, 1, ...]
+
+swap(i, a[i]) % a[1] = 2
 writeln(a[1], a[2]);
 % => 期待 1, 1 (i=1とa[1]=2をswapするからiが2, a[1]が1になってほしい?)
 % => 実際 2, 1
+
+i = 2
+a[1] = 1
 
 
 % Q1. 上の例の挙動を, 名前呼び出しの理解に基づいて説明せよ
@@ -69,11 +75,12 @@ for J in 1..10 do A.J={NewCell 0} end
 
 I={NewCell 1}
 (A.1):=2
-(A.2):=1
-% for J in 1..10 do {Browse @(A.J)} end
+% (A.2):=1
+(A.2):=3
+for J in 1..10 do {Browse @(A.J)} end
 {Swap fun {$} I end fun {$} A.@I end}
-% for J in 1..10 do {Browse @(A.J)} end
+for J in 1..10 do {Browse @(A.J)} end
 
 % Swapしない
 {Browse @(A.1)} % => 2
-{Browse @(A.2)} % => 1
+{Browse @(A.2)} % => 1 <- もとは i のやつ
