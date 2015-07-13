@@ -46,118 +46,151 @@ http://www.amazon.co.jp/dp/4798111112
 不変表明を破ることなく直接コンポーネントを使い，合成できる．
 
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% 7.5. 他の計算モデルとの関係
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% 7.5.1. オブジェクトベースプログラミングとコンポーネントベースプログラミング
+% オブジェクトベースプログラミングとは継承抜きのOOP．
+% 継承がないためオブジェクト抽象が単純になり，オーバーライド，多重継承の問題もなくなる．
+% 静的束縛と動的束縛が等しくなる．
+
+
+%% 7.5.2. 高階プログラミング
+% 高階プログラミングもオブジェクト指向もやろうとすることは同じ．
+% OOPは高階プログラミングを装飾している(embellish)点が異なる．たとえば
+%   * 明示的状態が定義でき，簡単に使える
+%   * 同じ明示的状態を共有するメソッド定義が容易
+%   * メソッドの集合を定義・具体化する仕組みとして"クラス"が用意されている
+%   * 継承がある．既存のメソッド集合からメソッドを拡張・修正・組み合わせる
+%   * クラスとオブジェクトの間にいろんなレベルのカプセル化が定義できる
+
+% 高階プログラミングとOOPに共通する限界
+%   * 値としてのクラス
+%   * 完全字句的スコープ
+%   * 第一級メッセージ
+%   * 手続きはオブジェクトとしてコード化できる
+%   * 汎用手続きは抽象クラスとしてコード化できる
+
+
+%% 7.5.3. 関数分解と型分解
+
+
+%% 7.5.4. すべてをオブジェクトにすべきか?
+% 強いオブジェクト
+% オブジェクトとプログラムの複雑さ
+% 一様オブジェクト構文
+
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% 7.4. 継承を使うプログラミング
+%% 7.6. オブジェクトシステムを実装すること
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% 継承をどう見るか?
-% 1. 型である
-%  クラスは型であり，代替性(substitution property)を満たす．
-%  すなわちクラスCのオブジェクトのオブジェクトに使える操作はCの下位クラスのオブジェクトにも使える.
-% 2. 構造である
-%  プログラムを構造化するための1つのツールにすぎない, と. この見方は"全く進められない"
-%  クラスが代替性を満たさないためあえである．
+% 主な特性は高階プログラミングと明示的状態の組み合わせによって得られる
 
 
-%% 契約による設計
-% D言語，契約による設計をサポートしてたりする
+%% 7.6.1. 抽象図
 
-%% 訓話 (読み物)
 
-%% 7.4.2 型に従って階層を構成すること
+%% 7.6.2. クラスを実装すること
 
-%% 7.4.3 汎用クラス(generic class)
-% 実現方法(1). 継承を使う
-% 実現方法(2). 高階プログラミングを利用する
-
-% fib 7.15 汎用クラスの使い方(継承バージョン)
-% クイックソート
+% fig7.26
 declare
-class GenericSort
-   meth init skip end
-   meth qsort(Xs Ys)
-      case Xs
-      of nil then Ys = nil
-      [] P|Xr then S L in
-         {self partition(Xr P S L)}
-         {Append {self qsort(S $)}
-                 P|{self qsort(L $)} Ys}
-      end
+class Counter
+   attr val
+   meth init(Value)
+      val:=Value
    end
-   meth partition(Xs P Ss Ls)
-      case Xs
-      of nil then Ss=nil Ls=nil
-      [] X|Xr then Sr Lr in
-         if {self less(X P $)} then
-            Ss=X|Sr Ls=Lr
-         else
-            Ss=Sr Ls=X|Lr
-         end
-         {self partition(Xr P Sr Lr)}
-      end
+   meth inc(Value)
+      val:=@val+Value
+   end
+   meth browse
+      {Browse @val}
    end
 end
 
-% fig 7.16
-declare
-class IntegerSort from GenericSort
-   meth less(X Y B)
-      B=(X<Y)
+
+% fig7.27
+declare Counter
+local
+   Attrs = [val]
+   MethodTable = m(browse:MyBrowse init:Init inc:Inc)
+   proc {Init M S Self}
+      init(Value)=M
+   in
+      (S.val):=Value
    end
-end
-
-class RationalSort from GenericSort
-   meth less(X Y B)
-      '/'(P Q)=X
-      '/'(R S)=Y
-   in B=(P*S<Q*R) end
-end
-
-
-% fig 7.18
-declare
-fun {MakeSort Less}
-   class $
-      meth init skip end
-      meth qsort(Xs Ys)
-         case Xs
-         of nil then Ys = nil
-         [] P|Xr then S L in
-            {self partition(Xr P S L)}
-            {Append {self qsort(S $)}
-                    P|{self qsort(L $)} Ys}
-         end
-      end
-      meth partition(Xs P Ss Ls)
-         case Xs
-         of nil then Ss=nil Ls=nil
-         [] X|Xr then Sr Lr in
-            if {Less X P} then
-               Ss=X|Sr Ls=Lr
-            else
-               Ss=Sr Ls=X|Lr
-            end
-            {self partition(Xr P Sr Lr)}
-         end
-      end
+   proc {Inc M S Self}
+      X
+      inc(Value)=M
+   in
+      X=@(S.val) (S.val):=X+Value
    end
+   proc {MyBrowse M S Self}
+      browse=M
+      {Browse @(S.val)}
+   end
+in
+   Counter = {Wrap c(methods:MethodTable attrs:Attrs)}
 end
 
-% fig 7.19
+% クラスはひとつの値(具体的にはレコード)である. Wrap のお陰で覗き見られないようになってる
+% クラスのレコードは以下のものを含む
+%   * メソッド表にあるメソッドの集合
+%   * 属性名の集合
+
+
+%% 7.6.3. オブジェクトの実装
+
+% fig7.28
 declare
-IntegerSort = {MakeSort fun {$ X Y} X<Y end}
+fun {New WClass InitialMethod}
+   State Obj Class={Unwrap WClass}
+in
+   State={MakeRecord s Class.attrs}
+   {Record.forAll State proc {$ A} {NewCell _ A} end}
+   proc {Obj M}
+      {Class.methods.{Label M} M State Obj}
+   end
+   {Obj InitialMethod}
+   Obj
+end
 
-RationalSort = {MakeSort fun {$ X Y}
-                            '/'(P Q) = X
-                            '/'(R S) = Y
-                         in P*S<Q*R end}
+% 動作確認
+declare
+C={New Counter init(0)} % 過去出てきたクラス
+{C inc(6)} {C inc(6)}
+{C browse}
 
 
-% Rationalの書き方.
+%% 7.6.4. 継承の実装
+
+% fig7.29
+declare
+fun {From C1 C2 C3}
+   c(methods:M1 attrs:A1)={Unwrap C1}
+   c(methods:M2 attrs:A2)={Unwrap C2}
+   c(methods:M3 attrs:A3)={Unwrap C3}
+   MA1={Arity M1}
+   MA2={Arity M2}
+   MA3={Arity M3}
+   ConfMeth={Minus {Inter MA2 MA3} MA1}
+   ConfAttr={Minus {Inter A1 A2} A3}
+in
+   if ConfMeth\=nil then
+      raise illegalInheritance(methConf:ConfMeth) end
+   end
+   if ConfAttr\=nil then
+      raise illegalInheritance(attrConf:ConfAttr) end
+   end
+   {Wrap c(methods:{Adjoin {Adjoin M2 M3} M1}
+           attrs:{Union {Union A2 A3} A1})}
+end
 
 
-%% 7.4.4 多重継承
-% そもそもなるべく継承を避けるというのが方針であるべきなのであんま現場では使わない
-% 多重継承は要はmixin
-% trait = mixin用の専用のモノ
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% 7.7. Java言語
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% ;; 適当に読み流す
