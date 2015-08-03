@@ -6,6 +6,8 @@
 % * ポートオブジェクトであり，
 % * その振る舞いがクラスによって定義されているもの
 
+% "オブジェクト" を利用ひとつとっても Active か否かで分岐の余地がある
+
 % 構成要素
 % * ポート
 % * ポートストリームからメッセージを読むスレッド
@@ -92,6 +94,10 @@ end
 %% 短縮プロトコル(shortcircuit protocol)
 % 死んだオブジェクトも引き続き存在してるとスキップしていく必要があり n がでかいと無駄が多い．
 % そこで上の fig7.34 では死んだら取り除いてる
+declare
+L={Josephus 40 3}
+{Browse L} % => 28
+
 
 %% 宣言的モデルによる解
 % よく見ると fig7.34 には観測可能な非決定性がなく，宣言的モデルで書ける. やってみよう
@@ -104,6 +110,9 @@ end
 
 fun {Josephus2 N K}
    fun {Victim Xs I}
+      % debug 出力. Xs の 1 要素は kill(step数 残り人数) が入ってる
+      % なんか膨らんで終息する?
+      % {Browse Xs}
       case Xs of kill(X S)|Xr then
          if S==1 then Last=I nil
          elseif X mod K==0 then
@@ -119,6 +128,16 @@ in
        fun {$ Is I} thread {Victim Is I} end end}
    Last
 end
+
+declare
+L2={Josephus2 20 3}
+{Browse L2} % => 20
+
+% 初期: 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20
+%  1周: 1 2 x 4 5 x 7 8 x 10 11  x 13 14  x 16 17  x 19 20
+%  2周: x 2 x x 5 x x 8 x  x 11  x  x 14  x  x 17  x  x 20
+%  3周: x x x x x x x x x  x  x  x  x  x  x  x  x  x  x 20 <= 最後の1人
+
 
 
 %% 7.8.4. その他の能動的オブジェクト抽象
@@ -237,6 +256,7 @@ EM={NewActive BatchingEventManager init}
 DiskH=fun {$ E S} {S write(vs:E)} S end
 File={New Open.file init(name:'event.log' flags:[write create])}
 Buf Id2
+% 処理のリスト [delete, write(..), write(..), ..., add] を渡す
 {EM batch([delete(Id Buf)
            proc {$}
              for E in {Reverse Buf} do {File write(vs:E)} end
@@ -244,3 +264,8 @@ Buf Id2
            add(DiskH File Id2)])}
 
 % batch メソッドは能動的オブジェクト内部で実行されるため replace 同様 atomicity が保証される
+
+% 比較
+% A. replace ... 明示的にコーディングされているため効率良い.
+% B. batch   ... 解釈実行の積み重ねであり, 柔軟. 多重継承でどこでも使える.
+%                ただし言語が第一級メッセージをサポートしていることが必須.
