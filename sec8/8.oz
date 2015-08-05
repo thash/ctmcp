@@ -66,6 +66,19 @@ in
    stack(push:Push pop:Pop)
 end
 
+declare
+ST={NewStack}
+{Browse ST}
+{ST.push 100}
+{Browse ST}
+{Browse {ST.pop}}
+{ST.push 200}
+{ST.push 300}
+{ST.push 400}
+j{Browse {ST.pop}}
+{Browse {ST.pop}}
+{Browse {ST.pop}}
+
 % Exchange はセルの内容を原子的に交換する. 原子的なので並列環境でも使える
 % 空のスタックをpopすることだけが例外発生のトリガー.
 fun {Pop}
@@ -144,6 +157,15 @@ S1 in
    S=X|S1 q(N-1 S1 E)
 end
 
+declare
+Qu1={NewQueue}
+{Browse Qu1}
+Qu2={Insert Qu1 77}
+{Browse Qu2}
+Qu3={Insert Qu2 99}
+{Browse Qu3}
+Qu4={Delete Qu3 77}
+{Browse Qu4}
 
 % Fig. 8.7
 % 直列状態あり実装.
@@ -176,6 +198,8 @@ fun {NewQueue}
    proc {Insert X}
    N S E1 in
       lock L then
+         {Delay 3000}
+         {Browse @C}
          q(N S X|E1)=@C
          C:=q(N+1 S E1)
       end
@@ -192,17 +216,27 @@ in
    queue(insert:Insert delete:Delete)
 end
 
+declare
+StQ={NewQueue}
+thread {Browse {StQ.delete}} end
+thread {StQ.insert 123} end
+thread {StQ.insert 456} end
+
+
+thread {StQ.insert 789} end
+
 
 % Fig. 8.9
 % 同じ内容をオブジェクト指向版で書いたもの.
 % ロックは性質lockingで暗黙に定義される
-declare
+declare X Queue
 class Queue
    attr queue
    prop locking
 
    meth init
       queue:=q(0 X X)
+      % => variable X not introduced になるので declare X
    end
 
    meth insert(X)
@@ -219,6 +253,13 @@ class Queue
       end
    end
 end
+
+declare
+Qu1={New Queue init}
+{Browse Qu1}
+{Qu1.insert 123}
+{Browse Qu1}
+{Qu1.insert 456}
 
 
 % Fig. 8.10
@@ -250,6 +291,36 @@ end
 %   {TS write(T)}
 %   {TS read(L T)}
 %   {TS readnonblock(L T B)}
+
+declare
+fun {NewQueue}
+   X C={NewCell q(0 X X)}
+   L={NewLock}
+   proc {Insert X}
+   N S E1 in
+      lock L then
+         % {Delay 3000}
+         % {Browse @C}
+         q(N S X|E1)=@C
+         C:=q(N+1 S E1)
+      end
+   end
+   fun {Delete}
+   N S1 E X in
+      lock L then
+         q(N X|S1 E)=@C
+         C:=q(N-1 S1 E)
+      end
+      X
+   end
+
+   fun {Size}
+      lock L then @C.1 end
+   end
+
+in
+   queue(insert:Insert delete:Delete size:Size)
+end
 
 % Fig 8.12 タプル空間の実装(順番前後)
 declare
@@ -319,9 +390,13 @@ end
 
 
 % 使ってみる
-declare
+declare Hoge
 TS={New TupleSpace init}
-thread {Browse {TS read(foo $)}} end
+thread
+   {TS read(foo Hoge)}
+   {Browse Hoge}
+end
+thread {TS write(foo(1 2 3))} end
 
 
 %% 8.3.3. ロックを実装すること
