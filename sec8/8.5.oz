@@ -245,5 +245,3 @@ in
    queue(enqueue:Enqueue dequeue:Dequeue
          delete:Delete isEmpty:IsEmpty)
 end
-
-
