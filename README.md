@@ -21,6 +21,16 @@ $ cd /Applications/Mozart2.app/Contents/Resources/share/mozart/
 
 https://mozart.github.io/mozart-v1/doc-1.4.0/apptut/node4.html
 
+
+### 動作しないコード
+
+* 9章のSolve
+  * booksuppl.oz での定義内で利用しているSpaceが動作しない
+* 11章のConnection
+  * module load できない (x-oz://system/ 配下にいない)
+  * `sec11/could_not_load_connection.oz`
+
+
 Review
 ========================
 
